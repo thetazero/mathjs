@@ -3,9 +3,9 @@ import { factory } from '../../utils/factory.js'
 import { gammaG, gammaNumber, gammaP } from '../../plain/number/index.js'
 
 const name = 'gamma'
-const dependencies = ['typed', 'config', 'multiplyScalar', 'pow', 'BigNumber', 'Complex']
+const dependencies = ['typed', 'config', 'multiplyScalar', 'pow', 'BigNumber', 'Complex', 'multiply', 'pi', 'sqrt']
 
-export const createGamma = /* #__PURE__ */ factory(name, dependencies, ({ typed, config, multiplyScalar, pow, BigNumber, Complex }) => {
+export const createGamma = /* #__PURE__ */ factory(name, dependencies, ({ typed, config, multiplyScalar, pow, BigNumber, Complex, multiply, pi, sqrt }) => {
   /**
    * Compute the gamma function of a value using Lanczos approximation for
    * small values, and an extended Stirling approximation for large values.
@@ -76,17 +76,14 @@ export const createGamma = /* #__PURE__ */ factory(name, dependencies, ({ typed,
     },
 
     BigNumber: function (n) {
-      if (n.isInteger()) {
+      if (!n.isFinite()) {
+        return new BigNumber(n.isNegative() ? NaN : Infinity)
+      } else if (n.isInteger()) {
         return (n.isNegative() || n.isZero())
           ? new BigNumber(Infinity)
           : bigFactorial(n.minus(1))
       }
-
-      if (!n.isFinite()) {
-        return new BigNumber(n.isNegative() ? NaN : Infinity)
-      }
-
-      throw new Error('Integer BigNumber expected')
+      return bigGamma(n.minus(1))
     },
 
     'Array | Matrix': function (n) {
@@ -95,11 +92,23 @@ export const createGamma = /* #__PURE__ */ factory(name, dependencies, ({ typed,
   })
 
   /**
+   * Calculate gamma for a BigNumber
+   * @param {Bignumber} n 
+   * @returns {Bignumber}
+   */
+  function bigGamma(n) {
+    // See Stirling's approximation: https://en.wikipedia.org/wiki/Stirling's_approximation
+    let cur = multiply(BigNumber(2), n, BigNumber(pi)) //need more accurate pi source
+    cur = sqrt(cur)
+    return cur
+  }
+
+  /**
    * Calculate factorial for a BigNumber
    * @param {BigNumber} n
    * @returns {BigNumber} Returns the factorial of n
    */
-  function bigFactorial (n) {
+  function bigFactorial(n) {
     if (n < 8) {
       return new BigNumber([1, 1, 2, 6, 24, 120, 720, 5040][n])
     }
